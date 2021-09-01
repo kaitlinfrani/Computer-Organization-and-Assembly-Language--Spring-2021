@@ -1,0 +1,248 @@
+     1                                  ;Kaitlin Frani
+     2                                  ;kaitlinfrani@csu.fullerton.edu
+     3                                  ;Section 5
+     4                                  ;harmonic.asm
+     5                                  
+     6                                  ;===========================Declarations===================================================================
+     7                                  extern printf
+     8                                  extern scanf
+     9                                  global harmonic_sum
+    10                                  
+    11                                  section .data
+    12 00000000 456E74657220746865-         input_terms db "Enter the number of terms desired: ", 0
+    12 00000009 206E756D626572206F-
+    12 00000012 66207465726D732064-
+    12 0000001B 6573697265643A2000 
+    13 00000024 456E74657220746865-         enter_frequency db "Enter the frequency of the processor as positive integer: ", 0
+    13 0000002D 206672657175656E63-
+    13 00000036 79206F662074686520-
+    13 0000003F 70726F636573736F72-
+    13 00000048 20617320706F736974-
+    13 00000051 69766520696E746567-
+    13 0000005A 65723A2000         
+    14 0000005F 0A5468652074696D65-         initial_time db 10, "The time is now %ld tics", 10, 0
+    14 00000068 206973206E6F772025-
+    14 00000071 6C6420746963730A00 
+    15 0000007A 0A5468652074696D65-         final_time db 10, "The time is now %ld tics", 10, 0
+    15 00000083 206973206E6F772025-
+    15 0000008C 6C6420746963730A00 
+    16 00000095 6B203D202531306C64-         terms_sum db "k = %10ld     sum = %.9lf", 10, 0
+    16 0000009E 202020202073756D20-
+    16 000000A7 3D20252E396C660A00 
+    17 000000B0 0A546865206861726D-         elapsed_time db 10, "The harmonic algorithm executed for a total time = %ld tics on a %.0lf Hz machine", 10, 0
+    17 000000B9 6F6E696320616C676F-
+    17 000000C2 726974686D20657865-
+    17 000000CB 637574656420666F72-
+    17 000000D4 206120746F74616C20-
+    17 000000DD 74696D65203D20256C-
+    17 000000E6 642074696373206F6E-
+    17 000000EF 206120252E306C6620-
+    17 000000F8 487A206D616368696E-
+    17 00000101 650A00             
+    18 00000104 257300                      stringformat db "%s", 0
+    19 00000107 256C6600                    floatformat db "%lf", 0
+    20                                  
+    21                                  section .bss
+    22                                  section .text
+    23                                  
+    24                                  harmonic_sum:
+    25                                  ;======Backing up all registers + setting stack pointer to base pointer=========================================
+    26 00000000 55                      push rbp
+    27 00000001 4889E5                  mov rbp,rsp
+    28 00000004 57                      push rdi
+    29 00000005 56                      push rsi
+    30 00000006 52                      push rdx
+    31 00000007 51                      push rcx
+    32 00000008 4150                    push r8
+    33 0000000A 4151                    push r9
+    34 0000000C 4152                    push r10
+    35 0000000E 4153                    push r11
+    36 00000010 4154                    push r12
+    37 00000012 4155                    push r13
+    38 00000014 4156                    push r14
+    39 00000016 4157                    push r15
+    40 00000018 53                      push rbx
+    41 00000019 9C                      pushf
+    42                                  
+    43                                  ;=============INITIALIZE=========================================================
+    44 0000001A 664D0F6EFF              movq xmm15, r15
+    45                                  
+    46 0000001F 48B8000000000000F0-     mov rax, 0x3ff0000000000000 ;1.0 float for calculation
+    46 00000028 3F                 
+    47 00000029 664C0F6EF0              movq xmm14, rax
+    48                                  
+    49 0000002E 664D0F6EE7              movq xmm12, r15 ;keeps it set to 0.0
+    50                                  
+    51                                  ;=============INPUT PROMPTS=====================================================
+    52                                  ;ask for terms
+    53 00000033 B800000000              mov rax, 0
+    54 00000038 48BF-                   mov rdi, stringformat
+    54 0000003A [0401000000000000] 
+    55 00000042 48BE-                   mov rsi, input_terms
+    55 00000044 [0000000000000000] 
+    56 0000004C E8(00000000)            call printf
+    57                                  
+    58                                  ;push qword 0
+    59 00000051 B801000000              mov rax, 1
+    60 00000056 48BF-                   mov rdi, floatformat
+    60 00000058 [0701000000000000] 
+    61 00000060 4889E6                  mov rsi, rsp
+    62 00000063 E8(00000000)            call scanf
+    63                                  
+    64 00000068 F2440F10E0              movsd xmm12, xmm0  ;save terms as a float
+    65                                  
+    66                                  ;=============START TERMS======================================================
+    67 0000006D 49B800000000000024-     mov r8, 0x4024000000000000  ;10.0 in hex to increment 10 terms
+    67 00000076 40                 
+    68 00000077 66490F6EC8              movq xmm1, r8
+    69 0000007C F3450F7EDC              movq xmm11, xmm12     ;copy user input xmm11 for xmm11 / 10.0
+    70 00000081 F2440F5ED9              divsd xmm11, xmm1     ;divide input by 11.0 for incrementing
+    71 00000086 66450F3A0BDB01          roundsd xmm11, xmm11, 1 ;round up for the terms
+    72                                  
+    73                                  ;=============FREQUENCY PROMPT==================================================
+    74                                  ;ask for frequency
+    75 0000008D B800000000              mov rax, 0
+    76 00000092 48BE-                   mov rsi, stringformat
+    76 00000094 [0401000000000000] 
+    77 0000009C 48BF-                   mov rdi, enter_frequency
+    77 0000009E [2400000000000000] 
+    78 000000A6 E8(00000000)            call printf
+    79                                  
+    80 000000AB B801000000              mov rax, 1
+    81 000000B0 48BF-                   mov rdi, floatformat
+    81 000000B2 [0701000000000000] 
+    82 000000BA 4889E6                  mov rsi, rsp
+    83 000000BD E8(00000000)            call scanf
+    84                                  
+    85 000000C2 F20F10E0                movsd xmm4, xmm0
+    86                                  
+    87                                  ;==============CALCULATE INITIAL TICK=============================================
+    88 000000C6 B800000000              mov rax, 0
+    89 000000CB BA00000000              mov rdx, 0
+    90 000000D0 0FA2                    cpuid
+    91 000000D2 0F31                    rdtsc
+    92 000000D4 48C1E220                shl rdx, 32
+    93                                  ;rax, rdx
+    94 000000D8 4801D0                  add rax, rdx
+    95 000000DB 4989C6                  mov r14, rax
+    96                                  
+    97 000000DE 48BF-                   mov rdi, initial_time
+    97 000000E0 [5F00000000000000] 
+    98 000000E8 4C89F6                  mov rsi, r14
+    99 000000EB E8(00000000)            call printf
+   100                                  
+   101                                  ;==============HARMONIC SUM=====================================================
+   102                                  ;k and sum format
+   103 000000F0 B800000000              mov rax, 0
+   104 000000F5 48BF-                   mov rdi, terms_sum
+   104 000000F7 [9500000000000000] 
+   105                                  
+   106 000000FF 48B8000000000000F0-     mov rax, 0x3ff0000000000000
+   106 00000108 3F                 
+   107 00000109 664C0F6ED0              movq xmm10, rax
+   108                                  
+   109 0000010E F24D0F2DEB              cvtsd2si r13, xmm11
+   110 00000113 4D89EF                  mov r15, r13
+   111                                  
+   112 00000116 41BC00000000            mov r12, 0
+   113 0000011C F2450F10EC              movsd xmm13, xmm12
+   114 00000121 F2450F58EA              addsd xmm13, xmm10
+   115                                  
+   116                                  ;================START LOOP=====================================================
+   117                                  begin:
+   118 00000126 66450F2EF5              ucomisd xmm14, xmm13
+   119 0000012B 743F                    je end
+   120                                  
+   121 0000012D 4D39EC                  cmp r12, r13
+   122 00000130 7419                    je print_terms_sum
+   123 00000132 49FFC4                  inc r12
+   124                                  
+   125 00000135 F2450F10CA              movsd xmm9, xmm10
+   126 0000013A F2450F5ECE              divsd xmm9, xmm14
+   127 0000013F F2450F58F9              addsd xmm15, xmm9
+   128                                  
+   129 00000144 F2450F58F2              addsd xmm14, xmm10
+   130                                  
+   131 00000149 EBDB                    jmp begin ;restart loop to keep iterating
+   132                                  
+   133                                  ;=============PRINT TERMS AND SUM===============================================
+   134                                  print_terms_sum:
+   135 0000014B B801000000              mov rax, 1
+   136 00000150 48BF-                   mov rdi, terms_sum
+   136 00000152 [9500000000000000] 
+   137 0000015A F2410F10C7              movsd xmm0, xmm15
+   138 0000015F 4C89E6                  mov rsi, r12
+   139 00000162 E8(00000000)            call printf
+   140                                  
+   141 00000167 4D01FD                  add r13, r15
+   142 0000016A EBBA                    jmp begin
+   143                                  
+   144                                  end:
+   145 0000016C B801000000              mov rax, 1
+   146 00000171 48BF-                   mov rdi, terms_sum
+   146 00000173 [9500000000000000] 
+   147 0000017B F2410F10C7              movsd xmm0, xmm15
+   148 00000180 4C89E6                  mov rsi, r12
+   149 00000183 E8(00000000)            call printf
+   150                                  
+   151                                  ;===============FINAL TIME======================================================
+   152 00000188 B800000000              mov rax, 0
+   153 0000018D B800000000              mov rax, 0
+   154 00000192 BA00000000              mov rdx, 0
+   155                                  
+   156 00000197 0FA2                    cpuid
+   157 00000199 0F31                    rdtsc
+   158                                  
+   159 0000019B 48C1E220                shl rdx, 32
+   160 0000019F 4801D0                  add rax, rdx
+   161                                  
+   162 000001A2 4989C7                  mov r15, rax
+   163                                  
+   164 000001A5 B800000000              mov rax, 0
+   165 000001AA 48BF-                   mov rdi, final_time
+   165 000001AC [7A00000000000000] 
+   166 000001B4 4C89FE                  mov rsi, r15
+   167 000001B7 E8(00000000)            call printf
+   168                                  
+   169                                  ;============PRINT HARMONIC ALGORITHM===========================================
+   170 000001BC F24D0F2AD7              cvtsi2sd xmm10, r15
+   171 000001C1 F2490F2AFE              cvtsi2sd xmm7, r14
+   172 000001C6 F2440F5CD7              subsd xmm10, xmm7
+   173                                  
+   174 000001CB F24D0F2DFA              cvtsd2si r15, xmm10
+   175                                  ;cvtsi2sd xmm10, r10
+   176                                  ;cvtsd2si r10, xmm4
+   177                                  
+   178 000001D0 B801000000              mov rax, 1
+   179 000001D5 48BF-                   mov rdi, elapsed_time
+   179 000001D7 [B000000000000000] 
+   180                                  ;prints out total time
+   181 000001DF 4C89FE                  mov rsi, r15
+   182                                  ;prints out Hz input
+   183 000001E2 F20F10C4                movsd xmm0, xmm4
+   184 000001E6 E8(00000000)            call printf
+   185                                  
+   186                                  ;===============RETURN ANSWER TO DRIVER==========================================
+   187 000001EB B800000000              mov rax, 0
+   188 000001F0 F3410F7EC7              movq xmm0, xmm15
+   189                                  
+   190                                  ;======Restoring all registers to their original values=================================================================
+   191 000001F5 9D                      popf
+   192 000001F6 5B                      pop rbx
+   193 000001F7 415F                    pop r15
+   194 000001F9 415E                    pop r14
+   195 000001FB 415D                    pop r13
+   196 000001FD 415C                    pop r12
+   197 000001FF 415B                    pop r11
+   198 00000201 415A                    pop r10
+   199 00000203 4159                    pop r9
+   200 00000205 4158                    pop r8
+   201 00000207 59                      pop rcx
+   202 00000208 5A                      pop rdx
+   203 00000209 5E                      pop rsi
+   204 0000020A 5F                      pop rdi
+   205 0000020B 5D                      pop rbp
+   206                                  
+   207 0000020C C3                      ret
+   208                                  
+   209                                  ;=======================================================================================================================

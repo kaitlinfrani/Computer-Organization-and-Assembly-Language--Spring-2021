@@ -1,0 +1,151 @@
+     1                                  ;********************************************************************************************
+     2                                  ; Program name:          Sum of Float Numbers in an Array                                   *
+     3                                  ; Programming Language:  x86 Assembly                                                       *
+     4                                  ; Program Description:   This program asks a user to input floats into an array and         *
+     5                                  ;                        returns the floats entered and sum of floats in the array.         *
+     6                                  ;                                                                                           *
+     7                                  ;********************************************************************************************
+     8                                  ; Author Information:                                                                       *
+     9                                  ; Name:         Kaitlin Frani                                                               *
+    10                                  ; Email:        kaitlinfrani@csu.fullerton.edu                                              *
+    11                                  ; Institution:  California State University - Fullerton                                     *
+    12                                  ; Course:       CPSC 240-05 Assembly Language                                               *
+    13                                  ;                                                                                           *
+    14                                  ;********************************************************************************************
+    15                                  ; Copyright (C) 2021 Kaitlin Frani                                                          *
+    16                                  ; This program is free software: you can redistribute it and/or modify it under the terms   *
+    17                                  ; of the GNU General Public License version 3 as published by the Free Software Foundation. *
+    18                                  ; This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY  *
+    19                                  ; without even the implied Warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. *
+    20                                  ; See the GNU General Public License for more details. A copy of the GNU General Public     *
+    21                                  ; License v3 is available here:  <https://www.gnu.org/licenses/>.                           *
+    22                                  ;                                                                                           *
+    23                                  ;********************************************************************************************
+    24                                  ; Program information                                                                       *
+    25                                  ;   Program name: Sum of Float Numbers in an Array                                          *
+    26                                  ;   Programming languages: One module in C, One module in C++, Three modules in X86         *
+    27                                  ;   Files in this program: control.asm, fill.asm, sum.asm, main.c, display.cpp              *
+    28                                  ;                                                                                           *
+    29                                  ;********************************************************************************************
+    30                                  ; This File                                                                                 *
+    31                                  ;    Name:      fill.asm                                                                    *
+    32                                  ;    Purpose:   To accept a users input of floats and save it into an array then send       *
+    33                                  ;               the total number of elements inputted into the array back to manager so     *
+    34                                  ;                that it can output the inputs.                                             *
+    35                                  ;                                                                                           *
+    36                                  ;********************************************************************************************
+    37                                  
+    38                                  extern printf
+    39                                  extern scanf
+    40                                  
+    41                                  global fill
+    42                                  
+    43                                  section .data
+    44 00000000 506C6561736520656E-         float_prompt db "Please enter floating numbers separated by ws.",10
+    44 00000009 74657220666C6F6174-
+    44 00000012 696E67206E756D6265-
+    44 0000001B 727320736570617261-
+    44 00000024 746564206279207773-
+    44 0000002D 2E0A               
+    45 0000002F 5768656E2066696E69-                      db "When finished press enter followed by cntl+D.",10, 0
+    45 00000038 736865642070726573-
+    45 00000041 7320656E7465722066-
+    45 0000004A 6F6C6C6F7765642062-
+    45 00000053 7920636E746C2B442E-
+    45 0000005C 0A00               
+    46 0000005E 256C660A00                  floatformat db "%lf", 10, 0   ;values
+    47                                  
+    48                                  section .bss
+    49                                  
+    50                                  section .text
+    51                                  
+    52                                  fill:
+    53                                  
+    54                                  ; Back up all registers and set stack pointer to base pointer
+    55 00000000 55                      push rbp
+    56 00000001 4889E5                  mov rbp, rsp
+    57 00000004 57                      push rdi
+    58 00000005 56                      push rsi
+    59 00000006 52                      push rdx
+    60 00000007 51                      push rcx
+    61 00000008 4150                    push r8
+    62 0000000A 4151                    push r9
+    63 0000000C 4152                    push r10
+    64 0000000E 4153                    push r11
+    65 00000010 4154                    push r12
+    66 00000012 4155                    push r13
+    67 00000014 4156                    push r14
+    68 00000016 4157                    push r15
+    69 00000018 53                      push rbx
+    70                                  
+    71 00000019 6AFF                    push qword -1
+    72                                  
+    73                                  ;-----------------------------INITIALIZE PARAMETERS-----------------------------------------
+    74 0000001B 4989FF                  mov r15, rdi
+    75 0000001E 4989F6                  mov r14, rsi
+    76 00000021 41BD00000000            mov r13, 0
+    77                                  
+    78                                  ;-----------------------------FLOAT PROMPT----------------------------------------------
+    79                                  ;enter the floating numbers
+    80 00000027 6A00                    push qword 0
+    81 00000029 B800000000              mov rax, 0
+    82 0000002E 48BF-                   mov rdi, float_prompt
+    82 00000030 [0000000000000000] 
+    83 00000038 E8(00000000)            call printf
+    84                                  
+    85                                  ;---------------------------------START OF LOOP---------------------------------------------
+    86                                  begin_loop:
+    87                                  
+    88                                  ;obtain floating number and store
+    89 0000003D B800000000              mov rax, 0
+    90 00000042 48BF-                   mov rdi, floatformat
+    90 00000044 [5E00000000000000] 
+    91 0000004C 4889E6                  mov rsi, rsp
+    92 0000004F E8(00000000)            call scanf
+    93                                  
+    94                                  ;tests if Ctrl + D is entered to finish inputting into array.
+    95 00000054 4898                    cdqe
+    96 00000056 4883F8FF                cmp rax, -1
+    97 0000005A 7416                    je end_of_loop                          ;end the loop once ctrl + D is entered
+    98                                  
+    99                                  ;--------------------------------COPY INTO ARRAY--------------------------------------------
+   100                                  ;adds copy of float saved in xmm15 into array at index of counter, r13
+   101 0000005C F2440F103C24            movsd xmm15, [rsp]
+   102 00000062 F2470F113CEF            movsd [r15 + 8 * r13], xmm15
+   103 00000068 49FFC5                  inc r13                                 ;increment counter, adding more elements into array
+   104                                  
+   105                                  ;-----------------------------ARRAY CAPACITY TEST-------------------------------------------
+   106                                  ;tests to see if max array capacity has been reached
+   107 0000006B 4D39F5                  cmp r13, r14                            ;compares # of elements (r13) to capacity (r14).
+   108 0000006E 7403                    je exit                                 ;exit loop once capacity has been reached
+   109                                  
+   110                                  ;restart loop
+   111 00000070 EBCB                    jmp begin_loop
+   112                                  
+   113                                  ;---------------------------------END OF LOOP-----------------------------------------------.
+   114                                  end_of_loop:
+   115 00000072 58                      pop rax
+   116                                  
+   117                                  ;------------------------------------EXIT LOOP---------------------------------------------------
+   118                                  exit:
+   119 00000073 58                      pop rax
+   120 00000074 4C89E8                  mov rax, r13
+   121 00000077 F2440F10F8              movsd xmm15, xmm0
+   122                                  
+   123                                  ;restore all backed up registers to their original state.
+   124 0000007C 5B                      pop rbx
+   125 0000007D 415F                    pop r15
+   126 0000007F 415E                    pop r14
+   127 00000081 415D                    pop r13
+   128 00000083 415C                    pop r12
+   129 00000085 415B                    pop r11
+   130 00000087 415A                    pop r10
+   131 00000089 4159                    pop r9
+   132 0000008B 4158                    pop r8
+   133 0000008D 59                      pop rcx
+   134 0000008E 5A                      pop rdx
+   135 0000008F 5E                      pop rsi
+   136 00000090 5F                      pop rdi
+   137 00000091 5D                      pop rbp
+   138                                  
+   139 00000092 C3                      ret

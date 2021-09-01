@@ -1,0 +1,184 @@
+     1                                  ;********************************************************************************************
+     2                                  ; Program name:          Sum of Float Numbers in an Array                                   *
+     3                                  ; Programming Language:  x86 Assembly                                                       *
+     4                                  ; Program Description:   This program asks a user to input floats into an array and         *
+     5                                  ;                        returns the floats entered and sum of floats in the array.         *
+     6                                  ;                                                                                           *
+     7                                  ;********************************************************************************************
+     8                                  ; Author Information:                                                                       *
+     9                                  ; Name:         Kaitlin Frani                                                               *
+    10                                  ; Email:        kaitlinfrani@csu.fullerton.edu                                              *
+    11                                  ; Institution:  California State University - Fullerton                                     *
+    12                                  ; Course:       CPSC 240-05 Assembly Language                                               *
+    13                                  ;                                                                                           *
+    14                                  ;********************************************************************************************
+    15                                  ; Copyright (C) 2021 Kaitlin Frani                                                          *
+    16                                  ; This program is free software: you can redistribute it and/or modify it under the terms   *
+    17                                  ; of the GNU General Public License version 3 as published by the Free Software Foundation. *
+    18                                  ; This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY  *
+    19                                  ; without even the implied Warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. *
+    20                                  ; See the GNU General Public License for more details. A copy of the GNU General Public     *
+    21                                  ; License v3 is available here:  <https://www.gnu.org/licenses/>.                           *
+    22                                  ;                                                                                           *
+    23                                  ;********************************************************************************************
+    24                                  ; Program information                                                                       *
+    25                                  ;   Program name: Sum of Float Numbers in an Array                                          *
+    26                                  ;   Programming languages: One module in C, One module in C++, Three modules in X86         *
+    27                                  ;   Files in this program: control.asm, fill.asm, sum.asm, main.c, display.cpp              *
+    28                                  ;                                                                                           *
+    29                                  ;********************************************************************************************
+    30                                  ; This File                                                                                 *
+    31                                  ;    Name:      control.asm                                                                 *
+    32                                  ;    Purpose:   To manage all the files in the program and call to functions fill,          *
+    33                                  ;               sum and display as needed. It also gets the value of sum and returns it.    *
+    34                                  ;                                                                                           *
+    35                                  ;********************************************************************************************
+    36                                  
+    37                                  extern printf
+    38                                  extern scanf
+    39                                  extern fill
+    40                                  extern display
+    41                                  extern sum
+    42                                  
+    43                                  array_size equ 100                 ;capacity for number of elements allowed in array.
+    44                                  
+    45                                  global control
+    46                                  
+    47                                  section .data
+    48 00000000 57656C636F6D652074-         intro db "Welcome to HSAS. The accuracy and reliability of this program is guaranteed by Kaitlin F.", 10, 0
+    48 00000009 6F20485341532E2054-
+    48 00000012 686520616363757261-
+    48 0000001B 637920616E64207265-
+    48 00000024 6C696162696C697479-
+    48 0000002D 206F66207468697320-
+    48 00000036 70726F6772616D2069-
+    48 0000003F 732067756172616E74-
+    48 00000048 656564206279204B61-
+    48 00000051 69746C696E20462E0A-
+    48 0000005A 00                 
+    49 0000005B 0A546865206E756D62-         numbers_entered db 10, "The numbers you entered are these: ", 10, 0
+    49 00000064 65727320796F752065-
+    49 0000006D 6E7465726564206172-
+    49 00000076 652074686573653A20-
+    49 0000007F 0A00               
+    50 00000081 5468652073756D206F-         sum_values db "The sum of these values is %.8lf.", 10, 0
+    50 0000008A 662074686573652076-
+    50 00000093 616C75657320697320-
+    50 0000009C 252E386C662E0A00   
+    51 000000A4 54686520636F6E7472-         sumprompt db "The control module will now return the sum to the caller module.", 10, 0
+    51 000000AD 6F6C206D6F64756C65-
+    51 000000B6 2077696C6C206E6F77-
+    51 000000BF 2072657475726E2074-
+    51 000000C8 68652073756D20746F-
+    51 000000D1 207468652063616C6C-
+    51 000000DA 6572206D6F64756C65-
+    51 000000E3 2E0A00             
+    52 000000E6 256C660A00                  floatformat db "%lf", 10, 0
+    53                                  
+    54                                  section .bss
+    55 00000000 <res 00000320>              floatArray: resq 100           ;array with 100 reserved qwords
+    56                                  
+    57                                  section .text
+    58                                  
+    59                                  control:
+    60                                  
+    61                                  ; Back up all registers and set stack pointer to base pointer
+    62 00000000 55                      push rbp
+    63 00000001 4889E5                  mov rbp, rsp
+    64 00000004 57                      push rdi
+    65 00000005 56                      push rsi
+    66 00000006 52                      push rdx
+    67 00000007 51                      push rcx
+    68 00000008 4150                    push r8
+    69 0000000A 4151                    push r9
+    70 0000000C 4152                    push r10
+    71 0000000E 4153                    push r11
+    72 00000010 4154                    push r12
+    73 00000012 4155                    push r13
+    74 00000014 4156                    push r14
+    75 00000016 4157                    push r15
+    76 00000018 53                      push rbx
+    77 00000019 9C                      pushf
+    78                                  
+    79 0000001A 6AFF                    push qword -1                          ;extra push to create even number of pushes
+    80                                  
+    81                                  ;-----------------------------INITIALIZE PARAMETERS-----------------------------------------
+    82 0000001C 41BE00000000            mov r14, 0                        ;number of elements in array.
+    83 00000022 41BD00000000            mov r13, 0                        ;sum of floats in array
+    84                                  
+    85                                  ;-------------------------------INTRO PROMPT------------------------------------------
+    86 00000028 B800000000              mov rax, 0
+    87 0000002D 48BF-                   mov rdi, intro                    ;intro message
+    87 0000002F [0000000000000000] 
+    88 00000037 E8(00000000)            call printf
+    89                                  
+    90                                  ;---------------------------CALL FUNCTION FILL---------------------------------------
+    91 0000003C 48BF-                   mov rdi, floatArray               ;passes array into rdi register.
+    91 0000003E [0000000000000000] 
+    92 00000046 BE64000000              mov rsi, array_size
+    93 0000004B B800000000              mov rax, 0
+    94 00000050 E8(00000000)            call fill
+    95 00000055 4989C6                  mov r14, rax                      ;saves copy of fill output into r14
+    96                                  
+    97                                  ;-------------------------CONFIRMS OUTPUT OF INPUTTED VALUES--------------------------------
+    98 00000058 6A00                    push qword 0
+    99 0000005A 48BF-                   mov rdi, numbers_entered          ;"The numbers you entered are:"
+    99 0000005C [5B00000000000000] 
+   100 00000064 B800000000              mov rax, 0
+   101 00000069 E8(00000000)            call printf
+   102                                  
+   103                                  ;----------------------------DISPLAY ELEMENTS OF ARRAY--------------------------------------
+   104                                  ;will output each float entered
+   105 0000006E 48BF-                   mov rdi, floatArray               ;passes the array as first parameter.
+   105 00000070 [0000000000000000] 
+   106 00000078 4C89F6                  mov rsi, r14                      ;passes # of elements in the array stored in r14.
+   107 0000007B B800000000              mov rax, 0
+   108 00000080 E8(00000000)            call display
+   109                                  
+   110                                  ;-----------------------------------CALL FUNCTION SUM-----------------------------------------------
+   111                                  ;will return the sum of floats in the array
+   112 00000085 48BF-                   mov rdi, floatArray                 ;passes the array as first parameter.
+   112 00000087 [0000000000000000] 
+   113 0000008F 4C89F6                  mov rsi, r14                        ;passes # of elements in the array stored in r14.
+   114 00000092 B800000000              mov rax, 0
+   115 00000097 E8(00000000)            call sum
+   116 0000009C F2440F10F8              movsd xmm15, xmm0                   ;saves a copy of the sum functions output to xmm15
+   117                                  
+   118                                  ;--------------------------PRINTS OUT TOTAL SUM-----------------------------------------------
+   119 000000A1 F2440F10F8              movsd xmm15, xmm0                   ;obtains the sum we put in xmm15
+   120 000000A6 48BF-                   mov rdi, sum_values
+   120 000000A8 [8100000000000000] 
+   121 000000B0 4C89F6                  mov rsi, r14
+   122 000000B3 B801000000              mov rax, 1
+   123 000000B8 E8(00000000)            call printf
+   124                                  
+   125                                  ;---------------------------------PRINTS OUT SUMPROMPT--------------------------------------
+   126 000000BD 6A00                    push qword 0
+   127 000000BF 48BF-                   mov rdi, sumprompt                  ;"The control module will now return the sum to the caller.."
+   127 000000C1 [A400000000000000] 
+   128 000000C9 B800000000              mov rax, 0
+   129 000000CE E8(00000000)            call printf
+   130                                  
+   131                                  ;---------------------------------END OF FILE-----------------------------------------------
+   132                                  ; Restores all registers to their original state.
+   133 000000D3 58                      pop rax
+   134 000000D4 58                      pop rax
+   135 000000D5 58                      pop rax
+   136 000000D6 F2410F10C7              movsd xmm0, xmm15     ;value returned from control.asm to main.c will be in xmm0
+   137 000000DB 9D                      popf
+   138 000000DC 5B                      pop rbx
+   139 000000DD 415F                    pop r15
+   140 000000DF 415E                    pop r14
+   141 000000E1 415D                    pop r13
+   142 000000E3 415C                    pop r12
+   143 000000E5 415B                    pop r11
+   144 000000E7 415A                    pop r10
+   145 000000E9 4159                    pop r9
+   146 000000EB 4158                    pop r8
+   147 000000ED 59                      pop rcx
+   148 000000EE 5A                      pop rdx
+   149 000000EF 5E                      pop rsi
+   150 000000F0 5F                      pop rdi
+   151 000000F1 5D                      pop rbp
+   152                                  
+   153 000000F2 C3                      ret

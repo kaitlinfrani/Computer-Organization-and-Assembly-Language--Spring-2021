@@ -1,0 +1,340 @@
+     1                                  ;Kaitlin Frani
+     2                                  ;CPSC240-5 Quadratic Formula Calculator Assignment #2
+     3                                  
+     4                                  ;================Open Source License============================================================================================
+     5                                  ; Program name: "Quadratic Formula Calculator"
+     6                                  ; We want to find out the roots of a quadratic equation given floating point values.
+     7                                  ; Copyright (C) 2021 Kaitlin Frani.
+     8                                  
+     9                                  ;This program is free software: you can redistribute it and/or modify it under the terms
+    10                                  ;of the GNU General Public License version 3 as published by the Free Software Foundation.
+    11                                  ;This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY
+    12                                  ;without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+    13                                  ;See the GNU General Public License for more details.
+    14                                  ;A copy of the GNU General Public License v3 is available here:  <https:;www.gnu.org/licenses/>.
+    15                                  ;================End of Open Source License=============================================================================================================
+    16                                  
+    17                                  ;================Author, Program, File Identification============================================================
+    18                                  ;Author information
+    19                                  ;  Author name: Kaitlin Frani
+    20                                  ;  Author email: kaitlinfrani@csu.fullerton.edu
+    21                                  
+    22                                  ;Program information
+    23                                  ;  Program name: Quadratic Formula Calculator
+    24                                  ;  Programming languages: Two modules in C++, one module in C, and one module in X86
+    25                                  ;  Date program began: 2021-Feb-24
+    26                                  ;  Date of last update: 2021-Feb-27
+    27                                  ;  Date of reorganization of comments: 2021-Feb-27
+    28                                  ;  Files in this program: isfloat.cpp quad_library.cpp second_degree.c
+    29                                  ;  Status: Finished. No errors when ran.
+    30                                  
+    31                                  ;This file
+    32                                  ;   File name: quadratic.asm
+    33                                  ;   Language: X86 with Intel syntax.
+    34                                  ;   Assemble: nasm -f elf64 -l quadratic.lis -o quadratic.o quadratic.asm
+    35                                  ;================End of Author, Program, File Identification=====================================================
+    36                                  
+    37                                  ;===========================Begin Declarations===================================================================
+    38                                  extern printf
+    39                                  extern scanf
+    40                                  extern atof
+    41                                  extern isfloat
+    42                                  extern show_no_root
+    43                                  extern show_one_root
+    44                                  extern show_two_root
+    45                                  global quadratic ;will use the function from driver file
+    46                                  
+    47                                  segment .data
+    48                                  
+    49 00000000 546869732070726F67-     intro db "This program will find the roots of any quadratic equation.",10, 10
+    49 00000009 72616D2077696C6C20-
+    49 00000012 66696E642074686520-
+    49 0000001B 726F6F7473206F6620-
+    49 00000024 616E79207175616472-
+    49 0000002D 617469632065717561-
+    49 00000036 74696F6E2E0A0A     
+    50 0000003D 506C6561736520656E-           db "Please enter the three floating point coefficients of a quadratic equation in the order a, b, c separated by the end of line character: ",0
+    50 00000046 746572207468652074-
+    50 0000004F 6872656520666C6F61-
+    50 00000058 74696E6720706F696E-
+    50 00000061 7420636F6566666963-
+    50 0000006A 69656E7473206F6620-
+    50 00000073 612071756164726174-
+    50 0000007C 696320657175617469-
+    50 00000085 6F6E20696E20746865-
+    50 0000008E 206F7264657220612C-
+    50 00000097 20622C206320736570-
+    50 000000A0 617261746564206279-
+    50 000000A9 2074686520656E6420-
+    50 000000B2 6F66206C696E652063-
+    50 000000BB 68617261637465723A-
+    50 000000C4 2000               
+    51 000000C6 257300                  string_three db "%s",0  ;convert string input to float
+    52 000000C9 0A5468616E6B20796F-     valid_equation db 10, "Thank you. The equation is %.8lfx^2 + %.8lfx + %.8lf = 0.0", 10, 10, 0
+    52 000000D2 752E20546865206571-
+    52 000000DB 756174696F6E206973-
+    52 000000E4 20252E386C66785E32-
+    52 000000ED 202B20252E386C6678-
+    52 000000F6 202B20252E386C6620-
+    52 000000FF 3D20302E300A0A00   
+    53 00000107 0A4F6E65206F662074-     return db 10, "One of these roots will be returned to the caller function.",10, 0
+    53 00000110 6865736520726F6F74-
+    53 00000119 732077696C6C206265-
+    53 00000122 2072657475726E6564-
+    53 0000012B 20746F207468652063-
+    53 00000134 616C6C65722066756E-
+    53 0000013D 6374696F6E2E0A00   
+    54 00000145 0A496E76616C696420-     invalid_message db 10, "Invalid input data detected. You may run this program again.", 10, 0
+    54 0000014E 696E70757420646174-
+    54 00000157 612064657465637465-
+    54 00000160 642E20596F75206D61-
+    54 00000169 792072756E20746869-
+    54 00000172 732070726F6772616D-
+    54 0000017B 20616761696E2E0A00 
+    55                                  
+    56                                  segment .bss
+    57 00000000 <res 00000018>              array: resq 3   ;for the 3 inputs
+    58                                  
+    59                                  segment .text
+    60                                  
+    61                                  quadratic:
+    62                                  ;===========================End of Declarations==================================================================
+    63                                  
+    64                                  ;======Backing up all registers + setting stack pointer to base pointer==========================================
+    65 00000000 55                      push rbp
+    66 00000001 4889E5                  mov rbp,rsp
+    67 00000004 57                      push rdi
+    68 00000005 56                      push rsi
+    69 00000006 52                      push rdx
+    70 00000007 51                      push rcx
+    71 00000008 4150                    push r8
+    72 0000000A 4151                    push r9
+    73 0000000C 4152                    push r10
+    74 0000000E 4153                    push r11
+    75 00000010 4154                    push r12
+    76 00000012 4155                    push r13
+    77 00000014 4156                    push r14
+    78 00000016 4157                    push r15
+    79 00000018 53                      push rbx
+    80 00000019 9C                      pushf
+    81                                  ;======End of backing up registers===============================================================================
+    82                                  
+    83                                  ;=============Begin setting counter and max # of inputs==========================================================
+    84 0000001A 41BC00000000            mov r12, 0  ;counter
+    85 00000020 41BD03000000            mov r13, 3  ;max # of inputs
+    86 00000026 41BE00000000            mov r14, 0  ;flag for square root of negative
+    87                                  ;============End of setting counter and max # of inputs==========================================================
+    88                                  
+    89                                  ;======Begin intro message=======================================================================================
+    90                                  ;create 1024 bytes of space for possible long string
+    91 0000002C 4881EC00040000          sub rsp, 1024
+    92                                  
+    93 00000033 48BF-                   mov rdi, string_three
+    93 00000035 [C600000000000000] 
+    94 0000003D 48BE-                   mov rsi, intro
+    94 0000003F [0000000000000000] 
+    95 00000047 B800000000              mov rax, 0
+    96 0000004C E8(00000000)            call printf
+    97                                  ;======End of intro message======================================================================================
+    98                                  
+    99                                  ;=======Begin input loop=========================================================================================
+   100                                  beginloop:        ;input loop begins
+   101                                  
+   102 00000051 4D39EC                  cmp r12, r13      ;compares counter which is 0(r12) to the limit 3 (r13)
+   103 00000054 7D78                    jge valid_inputs  ;jumps to check inputs
+   104                                  ;======End of input loop=========================================================================================
+   105                                  
+   106                                  ;===========Begin setting 3 max inputs===========================================================================
+   107 00000056 49FFC4                  inc r12       ;increments r12 each time user inputs a number
+   108 00000059 4C89E6                  mov rsi, r12  ;passes r12 in input string so that it knows 3 is max
+   109 0000005C B800000000              mov rax, 0
+   110                                  ;============End of setting 3 max inputs=========================================================================
+   111                                  
+   112                                  ;===============Begin User Input=================================================================================
+   113                                  ;push qword 0
+   114 00000061 48BF-                   mov rdi, string_three ;pass string three to take user input as a string "%s"
+   114 00000063 [C600000000000000] 
+   115 0000006B 4889E6                  mov rsi, rsp          ;points rsi to top of stack to place input value of scanf
+   116 0000006E B800000000              mov rax, 0            ;set rax to 0 to let scanf know incoming float
+   117 00000073 E8(00000000)            call scanf
+   118                                  ;pop rax
+   119                                  ;===========End of User Input====================================================================================
+   120                                  
+   121                                  ;=============Begin Input Validation Check=======================================================================
+   122 00000078 4889E7                  mov rdi, rsp
+   123 0000007B B800000000              mov rax, 0
+   124 00000080 E8(00000000)            call isfloat
+   125 00000085 4883F800                cmp rax, 0
+   126 00000089 7420                    je invalid_input  ;jump to invalid input if not float
+   127                                  ;============End of Input Validation Check=======================================================================
+   128                                  
+   129                                  ;============Begin ASCII to float convert========================================================================
+   130 0000008B B800000000              mov rax, 0
+   131 00000090 E8(00000000)            call atof
+   132                                  ;============End of ASCII to float convert=======================================================================
+   133                                  
+   134                                  ;=============Begin Move Input to an Array ======================================================================
+   135 00000095 66420FD604E5-           movq [array + 8 * (r12 - 1)], xmm0
+   135 0000009B [F8FFFFFF]         
+   136 0000009F F2460F583CE5-           addsd xmm15, [array + 8 * (r12 - 1)]
+   136 000000A5 [F8FFFFFF]         
+   137                                  
+   138 000000A9 EBA6                    jmp beginloop
+   139                                  ;=============End of Move Input to an Array======================================================================
+   140                                  
+   141                                  ;============Begin Input Validation==============================================================================
+   142                                  ;Invalid input
+   143                                  invalid_input:
+   144 000000AB B800000000              mov rax, 0
+   145 000000B0 48BF-                   mov rdi, string_three
+   145 000000B2 [C600000000000000] 
+   146 000000BA 48BE-                   mov rsi, invalid_message
+   146 000000BC [4501000000000000] 
+   147 000000C4 E8(00000000)            call printf
+   148 000000C9 E976010000              jmp end
+   149                                  
+   150                                  ;Valid input
+   151                                  valid_inputs:
+   152                                  ;check if user inputs 0.0 for a, then invalid.
+   153 000000CE 41BF00000000            mov r15, 0
+   154 000000D4 F24D0F2AC7              cvtsi2sd xmm8, r15
+   155 000000D9 66440F2E0425-           ucomisd xmm8, [array]
+   155 000000DF [00000000]         
+   156 000000E3 74C6                    je invalid_input
+   157 000000E5 6A00                    push qword 0
+   158                                  ;=============End of Input Validation============================================================================
+   159                                  
+   160                                  ;======Begin section of Displaying Numbers=======================================================================
+   161                                  ;output three float
+   162 000000E7 6A00                    push qword 0
+   163 000000E9 F20F100425-             movsd xmm0, [array]       ;a
+   163 000000EE [00000000]         
+   164 000000F2 F20F100C25-             movsd xmm1, [array + 8]   ;b
+   164 000000F7 [08000000]         
+   165 000000FB F20F101425-             movsd xmm2, [array + 16]  ;c
+   165 00000100 [10000000]         
+   166 00000104 48BF-                   mov rdi, valid_equation   ;"The equation is..."
+   166 00000106 [C900000000000000] 
+   167 0000010E B803000000              mov rax, 3
+   168 00000113 E8(00000000)            call printf
+   169 00000118 58                      pop rax
+   170 00000119 58                      pop rax
+   171                                  ;======End of Displaying Numbers=================================================================================
+   172                                  
+   173                                  ;============Begin Root Calculation==============================================================================
+   174                                  ;First find discriminant b^2 - 4*a*c
+   175 0000011A 41B804000000            mov r8, 4 ;putting integer 4 in r8
+   176 00000120 F24D0F2AC0              cvtsi2sd xmm8, r8 ;puts 4 into xmm9, converts to float
+   177 00000125 F2440F103C25-           movsd xmm15, [array]      ;putting a into xmm15
+   177 0000012B [00000000]         
+   178 0000012F F2440F103425-           movsd xmm14, [array + 8]  ;putting b into xmm14
+   178 00000135 [08000000]         
+   179 00000139 F2440F102C25-           movsd xmm13, [array + 16] ;putting c into xmm13
+   179 0000013F [10000000]         
+   180                                  
+   181 00000143 F2440F593425-           mulsd xmm14, [array + 8]  ;multiplying b*b putting into xmm14
+   181 00000149 [08000000]         
+   182 0000014D F2440F593C25-           mulsd xmm15, [array + 16] ;multiplying 1st and 3rd, putting value into xmm15 (ac)
+   182 00000153 [10000000]         
+   183 00000157 F2450F59F8              mulsd xmm15, xmm8         ;multiplying 4*ac, putting into xmm15
+   184 0000015C F2450F5CF7              subsd xmm14, xmm15        ;doing b^2(xmm14) - 4ac(xmm15)
+   185 00000161 F2450F10E6              movsd xmm12, xmm14        ;copy of discriminant in xmm12
+   186                                  ;discriminant is now in xmm12 and xmm14
+   187                                  
+   188                                  ;comparing if discriminant is >,=,or < 0
+   189 00000166 41B900000000            mov r9, 0           ;putting 0 into r9 to compare
+   190 0000016C F24D0F2AC9              cvtsi2sd xmm9, r9   ;turning 0 into float, putting it in xmm9
+   191 00000171 66450F2EF1              ucomisd xmm14, xmm9 ;comparing discriminant with 0
+   192 00000176 7708                    ja two_roots
+   193 00000178 746E                    je one_root
+   194 0000017A 0F829C000000            jb no_root
+   195                                  
+   196                                  ;will compare if greater than 0, then find two roots
+   197                                  two_roots:
+   198                                  ;-b + (sqrt(discriminant)) / 2a
+   199 00000180 F2450F51F6              sqrtsd xmm14, xmm14   ;do sqrt of discriminant, put sqrt into xmm14
+   200 00000185 49C7C1FFFFFFFF          mov r9, -1  ;for -b
+   201 0000018C F24D0F2AD1              cvtsi2sd xmm10, r9    ;turning -1 to float, putting -1 into xmm10
+   202 00000191 F2440F591425-           mulsd xmm10, [array + 8]  ;multiplying -1 with b, putting it into xmm10
+   202 00000197 [08000000]         
+   203 0000019B F2450F10DA              movsd xmm11, xmm10 ;make copy of -b, put into xmm11
+   204 000001A0 F2450F10E3              movsd xmm12, xmm11
+   205 000001A5 F2450F58DE              addsd xmm11, xmm14    ;-b + sqrt(discriminant) is in xmm11
+   206 000001AA 41BA02000000            mov r10, 2  ;for 2a
+   207 000001B0 F2490F2AFA              cvtsi2sd xmm7, r10    ;turning 2 into float, put into xmm7
+   208 000001B5 F20F593C25-             mulsd xmm7, [array]   ;xmm7 has 2a
+   208 000001BA [00000000]         
+   209 000001BE F2440F5EDF              divsd xmm11, xmm7     ;doing sqrt of discriminant / 2a
+   210                                  
+   211                                  ;-b - (sqrt(discriminant(xmm1))) / 2a
+   212 000001C3 F2450F5CD6              subsd xmm10, xmm14  ;-b - sqrt of discriminant
+   213 000001C8 F2440F5ED7              divsd xmm10, xmm7   ;sqrt of discriminant / 2a
+   214 000001CD F2450F10E2              movsd xmm12, xmm10  ;making copy putting it into xmm12
+   215                                  
+   216 000001D2 B802000000              mov rax, 2    ;outputting two values
+   217 000001D7 F2410F10C3              movsd xmm0, xmm11   ;root1
+   218 000001DC F2410F10CA              movsd xmm1, xmm10   ;root2
+   219 000001E1 E8(00000000)            call show_two_root
+   220 000001E6 EB40                    jmp endfunction
+   221                                  
+   222                                  ;if equal to 0
+   223                                  one_root:
+   224                                  ;-b/2*a
+   225 000001E8 41BA02000000            mov r10, 2  ;for 2a
+   226 000001EE F2490F2AFA              cvtsi2sd xmm7, r10
+   227 000001F3 F20F593C25-             mulsd xmm7, [array] ;xmm7 has 2a
+   227 000001F8 [00000000]         
+   228 000001FC F2440F10E7              movsd xmm12, xmm7
+   229 00000201 F2440F5EE7              divsd xmm12, xmm7   ;xmm12 has -b/2a
+   230 00000206 B801000000              mov rax, 1     ;outputting one value
+   231 0000020B F2410F10C4              movsd xmm0, xmm12
+   232 00000210 F2440F10D0              movsd xmm10, xmm0
+   233 00000215 E8(00000000)            call show_one_root
+   234 0000021A EB0C                    jmp endfunction
+   235                                  
+   236                                  ;if less than 0
+   237                                  no_root:
+   238 0000021C B800000000              mov rax, 0    ;outputting no value
+   239 00000221 E8(00000000)            call show_no_root
+   240 00000226 EB1C                    jmp end
+   241                                  ;=================End of Root Calculation========================================================================
+   242                                  
+   243                                  ;======Begin ending messages before exiting program==============================================================
+   244                                  endfunction:
+   245                                  ;display return message
+   246 00000228 6A00                    push qword 0
+   247 0000022A B800000000              mov rax, 0
+   248 0000022F 48BF-                   mov rdi, return     ;"One of these roots will be returned to the caller function"
+   248 00000231 [0701000000000000] 
+   249 00000239 E8(00000000)            call printf
+   250 0000023E 58                      pop rax
+   251                                  
+   252 0000023F F2410F10C2              movsd xmm0, xmm10   ;grabs a root, returns it to driver file
+   253                                  
+   254                                  ;no root jumps here to output 0.0
+   255                                  end:
+   256 00000244 F2410F10C2              movsd xmm0, xmm10
+   257                                  
+   258                                  ;since we did sub, we need to add, even the # of pushes and pops
+   259 00000249 4881C400040000          add rsp, 1024
+   260                                  ;======End of ending message before exiting program==============================================================
+   261                                  
+   262                                  ;======Restoring all registers to their original values==========================================================
+   263 00000250 9D                      popf
+   264 00000251 5B                      pop rbx
+   265 00000252 415F                    pop r15
+   266 00000254 415E                    pop r14
+   267 00000256 415D                    pop r13
+   268 00000258 415C                    pop r12
+   269 0000025A 415B                    pop r11
+   270 0000025C 415A                    pop r10
+   271 0000025E 4159                    pop r9
+   272 00000260 4158                    pop r8
+   273 00000262 59                      pop rcx
+   274 00000263 5A                      pop rdx
+   275 00000264 5E                      pop rsi
+   276 00000265 5F                      pop rdi
+   277 00000266 5D                      pop rbp
+   278                                  
+   279 00000267 C3                      ret
+   280                                  ;================================================================================================================
